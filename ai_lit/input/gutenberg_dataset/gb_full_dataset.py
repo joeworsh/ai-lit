@@ -5,7 +5,6 @@ is targeted for the classification task.
 """
 
 import nltk
-import numpy as np
 import os
 import tensorflow as tf
 
@@ -55,11 +54,7 @@ def get_dataset(workspace, tf_file, class_count, vocab, doc_length=None):
     :return: The label and value record tensors from the dataset.
     """
 
-    def cap_vocab_term(x_term):
-        if x_term >= len(vocab):
-            return vocab.index(input_util.UNK_TOKEN)
-        return x_term
-    capper = np.vectorize(cap_vocab_term)
+    vocab_cap = len(vocab)
 
     def _parse_function(example_proto):
         context_features = {
@@ -76,7 +71,7 @@ def get_dataset(workspace, tf_file, class_count, vocab, doc_length=None):
         x = seq_parsed["x"]
         if doc_length is not None:
             x = x[:doc_length]
-        x = capper(x)
+        x = tf.clip_by_value(x, 0, vocab_cap)
         return y, x
 
     # filter to ensure only complete batches are included in this dataset

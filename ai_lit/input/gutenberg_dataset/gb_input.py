@@ -63,6 +63,8 @@ def decode_gb_idx(dct):
         gb_idx = GutenbergIndex(dct['index'], dct['indexfile'], dct['title'], dct['author'], dct['subjects'])
         gb_idx.body = dct['body']
         gb_idx.bodyfile = dct['bodyfile']
+        gb_idx.body_length = dct['body_length']
+        gb_idx.title_length = dct['title_length']
         return gb_idx
     return dct
 
@@ -235,7 +237,12 @@ def build_inputs(subjects, body_file_map, dataset_dir, workspace, test_split):
                         train_inputs.append(gidx)
 
                         # note: the vocabulary is only created based off of the training inputs, not the test inputs
-                        vocab.update(nltk.word_tokenize(gidx.body))
+                        tokens = nltk.word_tokenize(gidx.body)
+                        vocab.update(tokens)
+                        gidx.body_length = len(tokens)
+
+                        title_tokens = nltk.word_tokenize(gidx.title)
+                        gidx.title_length = len(title_tokens)
         current_idx = current_idx + 1
 
     # write the vocab to file

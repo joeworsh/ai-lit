@@ -115,7 +115,7 @@ class AILitUniversity:
                         summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_training_run(
                             session, model, batch_y, batch_x)
                         time_str = datetime.datetime.now().isoformat()
-                        clear_output()
+                        clear_output(True)
                         print("{}: Training step {}".format(time_str, step))
                         print('Targets:')
                         print(batch_targets)
@@ -133,7 +133,7 @@ class AILitUniversity:
                             batch_y, batch_x = session.run([v_labels, v_bodies])
                             summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_evaluation_run(
                                 session, model, batch_y, batch_x)
-                            clear_output()
+                            clear_output(True)
                             print("Validation Step")
                             print('Targets:')
                             print(batch_targets)
