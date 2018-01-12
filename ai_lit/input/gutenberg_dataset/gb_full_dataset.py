@@ -5,6 +5,7 @@ is targeted for the classification task.
 """
 
 import nltk
+import numpy as np
 import os
 import tensorflow as tf
 
@@ -19,37 +20,46 @@ TRAIN_TITLE_RECORDS = 'train_gb_full.tfrecords'
 TEST_TITLE_RECORDS = 'test_gb_full.tfrecrods'
 
 
-def get_training_dataset(workspace, class_count, doc_length=None):
+def get_training_dataset(workspace, class_count, vocab, doc_length=None):
     """
     Get the GB full training dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
+    :param vocab: The set of unique terms used for this dataset.
     :param doc_length: The set document length of the full dataset.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count)
+    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count, vocab, doc_length)
 
 
-def get_testing_dataset(workspace, class_count, doc_length=None):
+def get_testing_dataset(workspace, class_count, vocab, doc_length=None):
     """
     Get the GB full testing dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
+    :param vocab: The set of unique terms used for this dataset.
     :param doc_length: The set document length of the full dataset.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count)
+    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count, vocab, doc_length)
 
 
-def get_dataset(workspace, tf_file, class_count, doc_length=None):
+def get_dataset(workspace, tf_file, class_count, vocab, doc_length=None):
     """
     Retrieve the defining GB full dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param tf_file: The TFRecords file to parse.
     :param class_count: The number of classes to be classified.
+    :param vocab: The set of unique terms used for this dataset.
     :param doc_length: The set document length of the full dataset.
     :return: The label and value record tensors from the dataset.
     """
+
+    def cap_vocab_term(x_term):
+        if x_term >= len(vocab):
+            return vocab.index(input_util.UNK_TOKEN)
+        return x_term
+    capper = np.vectorize(cap_vocab_term)
 
     def _parse_function(example_proto):
         context_features = {
@@ -66,6 +76,7 @@ def get_dataset(workspace, tf_file, class_count, doc_length=None):
         x = seq_parsed["x"]
         if doc_length is not None:
             x = x[:doc_length]
+        x = capper(x)
         return y, x
 
     # filter to ensure only complete batches are included in this dataset

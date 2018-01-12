@@ -12,8 +12,10 @@ from ai_lit.university import ai_lit_university
 import tensorflow as tf
 
 # training parameters
-tf.flags.DEFINE_integer("document_length", 20000,
+tf.flags.DEFINE_integer("document_length", 5000,
                         "The padding and clipped length of each document for CNN processing.")
+tf.flags.DEFINE_integer("vocab_count", 5000,
+                        "The top number of vocabulary terms to keep for training.")
 tf.flags.DEFINE_float("dropout", 0.5,
                       "The percentage applied for the dropout rate of edges in the graph.")
 tf.flags.DEFINE_bool("use_pretrained_embeddings", False,
@@ -29,15 +31,18 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
     This is an AI Lit university for training CNN-Kim on the Gutenberg Full text dataset.
     """
 
-    def __init__(self, model_dir, workspace):
+    def __init__(self, model_dir, workspace, dataset_wkspc):
         """
         Initialize the GB Full CNN Kim university.
         :param model_dir: The directory where this model is stored.
         :param workspace: The workspace directory of this university.
+        :param dataset_wkspc: The GB input workspace where all inputs are stored.
         """
         super().__init__(model_dir, workspace)
-        self.subjects = gb_input.get_subjects(self.workspace)
-        self.vocab = input_util.get_sorted_vocab(gb_input.get_vocabulary(self.workspace))
+        self.dataset_wkspc = dataset_wkspc
+        self.subjects = gb_input.get_subjects(self.dataset_wkspc)
+        self.vocab = input_util.get_sorted_vocab(gb_input.get_vocabulary(self.dataset_wkspc))
+        self.vocab = self.vocab[:FLAGS.vocab_count]
 
     def get_model(self, graph):
         """
@@ -57,8 +62,8 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         Supply the training data for GB Full text dataset.
         :return: Labels and bodies tensors for input.
         """
-        training_dataset = gb_full_dataset.get_training_dataset(self.workspace, len(self.subjects),
-                                                                FLAGS.document_length)
+        training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                self.vocab, FLAGS.document_length)
         train_iterator = training_dataset.make_one_shot_iterator()
         labels, bodies = train_iterator.get_next()
         return labels, bodies
@@ -68,7 +73,8 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         Supply the evaluation data for GB Full text dataset.
         :return: Labels and bodies tensors for input.
         """
-        testing_dataset = gb_full_dataset.get_testing_dataset(self.workspace, len(self.subjects), FLAGS.document_length)
+        testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
+                                                              self.vocab, FLAGS.document_length)
         test_iterator = testing_dataset.make_one_shot_iterator()
         labels, bodies = test_iterator.get_next()
         return labels, bodies
