@@ -229,13 +229,13 @@ class AILitUniversity:
         if os.path.exists(eval_targets_file):
             tf.gfile.Remove(eval_targets_file)
         with open(eval_targets_file, 'w') as f:
-            json.dump(targets, f, indent=4)
+            json.dump([int(t) for t in targets], f, indent=4)  # note must convert from Int32 class to primitive
 
         eval_preds_file = os.path.join(ckpt_dir, EVAL_PREDICTIONS_FILE)
         if os.path.exists(eval_preds_file):
             tf.gfile.Remove(eval_preds_file)
         with open(eval_preds_file, 'w') as f:
-            json.dump(predictions, f, indent=4)
+            json.dump([int(p) for p in predictions], f, indent=4)  # note must convert from Int32 class to primitive
 
         return targets, predictions
 
