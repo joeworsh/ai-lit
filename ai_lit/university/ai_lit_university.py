@@ -81,8 +81,9 @@ class AILitUniversity:
         Train the model on the designated dataset.
         :param save_rate: The rate at which the model saves checkpoints to disk.
         :param eval_rate: The rate at which the model is evaluated with the validation set, if a validation set is provided.
+        :return: The run name which was trained. This is timestamp of the run in the model workspace.
         """
-        cpt_file, cpt_dir, train_dir, test_dir = self.init_workspace()
+        run_name, cpt_file, cpt_dir, train_dir, test_dir = self.init_workspace()
         with tf.Graph().as_default() as tf_graph:
             labels, bodies = self.get_training_data()
             try:
@@ -158,6 +159,8 @@ class AILitUniversity:
                 coord.request_stop()
                 coord.join(threads)
 
+        return run_name
+
     def evaluate(self, model_checkpoint):
         """
         Evaluate the model in this university using the parameters stored in the provided checkpoint.
@@ -167,7 +170,9 @@ class AILitUniversity:
         targets = []
         predictions = []
         ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)
+        ckpt_restore_dir = os.path.join(ckpt_dir, "checkpoints")
         assert os.path.exists(ckpt_dir)
+        assert os.path.exists(ckpt_restore_dir)
 
         with tf.Graph().as_default() as tf_graph:
             labels, bodies = self.get_evaluation_data()
@@ -181,7 +186,7 @@ class AILitUniversity:
 
             # Load the checkpointed model into the univserity
             saver = tf.train.Saver()
-            ckpt = tf.train.get_checkpoint_state(ckpt_dir)
+            ckpt = tf.train.get_checkpoint_state(ckpt_restore_dir)
 
             # start the evaluation session and load the latest checkpoint
             with tf.Session() as session:
@@ -197,10 +202,20 @@ class AILitUniversity:
                 print("Begin evaluation")
                 try:
                     while True:
-                        summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_run(
-                            model, labels, bodies, False)
+                        batch_y, batch_x = session.run([labels, bodies])
+                        summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_evaluation_run(
+                            session, model, batch_y, batch_x)
                         targets.extend(batch_targets)
                         predictions.extend(batch_predictions)
+
+                        clear_output(True)
+                        print("Validation Step")
+                        print('Targets:')
+                        print(batch_targets)
+                        print('Predictions:')
+                        print(batch_predictions)
+                        print("Loss {:g}, Acc {:g}".format(batch_loss, batch_accuracy))
+                        print()
 
                 except tf.errors.OutOfRangeError:
                     print("Testing examples exhausted")
@@ -250,7 +265,7 @@ class AILitUniversity:
         with open(config_file, 'w+') as f:
             f.write(str(FLAGS.__dict__['__flags']))
 
-        return cpt_file, cpt_dir, train_dir, test_dir
+        return time_str, cpt_file, cpt_dir, train_dir, test_dir
 
     def get_latest_run_dir(self):
         """
@@ -294,7 +309,7 @@ class AILitUniversity:
         :param model_checkpoint: The checkpoint directory to retrieve an evaluation for.
         :return: targets, predictions
         """
-        targets, predictions = self.get_evaluation_data(model_checkpoint)
+        targets, predictions = self.get_evaluation(model_checkpoint)
         if targets is None or predictions is None:
             print("Could not find a saved run in the checkpoint directory. Will perform evaluation now.")
             target, predictions = self.evaluate(model_checkpoint)

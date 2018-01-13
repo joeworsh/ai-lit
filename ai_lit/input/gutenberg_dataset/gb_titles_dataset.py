@@ -19,34 +19,38 @@ TRAIN_TITLE_RECORDS = 'train_gb_titles.tfrecords'
 TEST_TITLE_RECORDS = 'test_gb_titles.tfrecrods'
 
 
-def get_training_dataset(workspace, class_count):
+def get_training_dataset(workspace, class_count, vocab):
     """
     Get the GB titles training dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
+    :param vocab: The set of unique terms used for this dataset.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count)
+    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count, vocab)
 
 
-def get_testing_dataset(workspace, class_count):
+def get_testing_dataset(workspace, class_count, vocab):
     """
     Get the GB titles testing dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
+    :param vocab: The set of unique terms used for this dataset.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count)
+    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count, vocab)
 
 
-def get_dataset(workspace, tf_file, class_count):
+def get_dataset(workspace, tf_file, class_count, vocab):
     """
     Retrieve the defining GB title dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param tf_file: The TFRecords file to parse.
     :param class_count: The number of classes to be classified.
+    :param vocab: The set of unique terms used for this dataset.
     :return: The label and value record tensors from the dataset.
     """
+    vocab_cap = len(vocab)
     def _parse_function(example_proto):
         context_features = {
             "y": tf.FixedLenFeature([1], dtype=tf.int64)
@@ -60,6 +64,7 @@ def get_dataset(workspace, tf_file, class_count):
             sequence_features=seq_features)
         y = tf.one_hot(context_parsed["y"][0], class_count, dtype=tf.int64)
         x = seq_parsed["x"]
+        x = tf.clip_by_value(x, 0, vocab_cap)
         return y, x
 
     # filter to ensure only complete batches are included in this dataset
