@@ -8,10 +8,15 @@ and other runtime specific operations.
 from IPython.display import clear_output
 
 import datetime
+import json
 import os
 import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
+
+DATETIME_FORMAT = "%Y%m%d-%H%M%S"
+EVAL_TARGETS_FILE = "evaluation_targets.json"
+EVAL_PREDICTIONS_FILE = "evaluation_predictions.json"
 
 
 class AILitUniversity:
@@ -161,6 +166,8 @@ class AILitUniversity:
         """
         targets = []
         predictions = []
+        ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)
+        assert os.path.exists(ckpt_dir)
 
         with tf.Graph().as_default() as tf_graph:
             labels, bodies = self.get_evaluation_data()
@@ -174,7 +181,7 @@ class AILitUniversity:
 
             # Load the checkpointed model into the univserity
             saver = tf.train.Saver()
-            ckpt = tf.train.get_checkpoint_state(model_checkpoint)
+            ckpt = tf.train.get_checkpoint_state(ckpt_dir)
 
             # start the evaluation session and load the latest checkpoint
             with tf.Session() as session:
@@ -203,6 +210,18 @@ class AILitUniversity:
                 coord.request_stop()
                 coord.join(threads)
 
+        eval_targets_file = os.path.join(ckpt_dir, EVAL_TARGETS_FILE)
+        if os.path.exists(eval_targets_file):
+            tf.gfile.Remove(eval_targets_file)
+        with open(eval_targets_file, 'w') as f:
+            json.dump(targets, f, indent=4)
+
+        eval_preds_file = os.path.join(ckpt_dir, EVAL_PREDICTIONS_FILE)
+        if os.path.exists(eval_preds_file):
+            tf.gfile.Remove(eval_preds_file)
+        with open(eval_preds_file, 'w') as f:
+            json.dump(predictions, f, indent=4)
+
         return targets, predictions
 
     def init_workspace(self):
@@ -216,7 +235,7 @@ class AILitUniversity:
         out_dir = os.path.join(self.workspace, self.model_dir)
         if not tf.gfile.Exists(out_dir):
             tf.gfile.MakeDirs(out_dir)
-        time_str = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        time_str = datetime.datetime.now().strftime(DATETIME_FORMAT)
         run_dir = os.path.join(out_dir, time_str)
         tf.gfile.MakeDirs(run_dir)
         cpt_dir = os.path.join(run_dir, 'checkpoints')
@@ -232,3 +251,51 @@ class AILitUniversity:
             f.write(str(FLAGS.__dict__['__flags']))
 
         return cpt_file, cpt_dir, train_dir, test_dir
+
+    def get_latest_run_dir(self):
+        """
+        Get the latest run of this university model, if it exists. If it does not exist, returns None.
+        :return: The latest run checkpoint directory, or none.
+        """
+        latest_run = None
+        if tf.gfile.Exists(self.workspace):
+            run_dir = os.path.join(self.workspace, self.model_dir)
+            if tf.gfile.Exists(run_dir):
+                all_runs = sorted(os.listdir(run_dir), key=lambda x: datetime.datetime.strptime(x, DATETIME_FORMAT))
+                print("Found", len(all_runs), "runs. Selecting the latest", all_runs[0])
+                latest_run = all_runs[0]
+        return latest_run
+
+    def get_evaluation(self, model_checkpoint):
+        """
+        If an evaluation run has already been saved to the checkpoint workspace, load the targets and precisions.
+        Returns None, None if an evaluation does not exist.
+        :param model_checkpoint: The checkpoint directory to check for an evaluation.
+        :return: targets, predictions or None, None
+        """
+        ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)
+        assert os.path.exists(ckpt_dir)
+        targets = None
+        predictions = None
+
+        eval_targets_file = os.path.join(ckpt_dir, EVAL_TARGETS_FILE)
+        eval_preds_file = os.path.join(ckpt_dir, EVAL_PREDICTIONS_FILE)
+        if os.path.exists(eval_targets_file) and os.path.exists(eval_preds_file):
+            with open(eval_targets_file, 'r') as f:
+                targets = json.load(f)
+            with open(eval_preds_file, 'r') as f:
+                predictions = json.load(f)
+
+        return targets, predictions
+
+    def get_or_perform_evaluation(self, model_checkpoint):
+        """
+        Helper method to retrieve an evaluation (or perform one if necessary) on the provided checkpoint directory.
+        :param model_checkpoint: The checkpoint directory to retrieve an evaluation for.
+        :return: targets, predictions
+        """
+        targets, predictions = self.get_evaluation_data(model_checkpoint)
+        if targets is None or predictions is None:
+            print("Could not find a saved run in the checkpoint directory. Will perform evaluation now.")
+            target, predictions = self.evaluate(model_checkpoint)
+        return targets, predictions
