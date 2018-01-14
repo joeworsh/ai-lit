@@ -17,6 +17,7 @@ FLAGS = tf.flags.FLAGS
 DATETIME_FORMAT = "%Y%m%d-%H%M%S"
 EVAL_TARGETS_FILE = "evaluation_targets.json"
 EVAL_PREDICTIONS_FILE = "evaluation_predictions.json"
+FLAG_CONFIG_FILE = "tf_configuration.json"
 
 
 class AILitUniversity:
@@ -263,25 +264,38 @@ class AILitUniversity:
         test_dir = os.path.join(run_dir, 'test')
 
         # write the flags configuration to file
-        config_file = os.path.join(run_dir, 'configuration.txt')
-        with open(config_file, 'w+') as f:
-            f.write(str(FLAGS.__dict__['__flags']))
+        config_file = os.path.join(run_dir, FLAG_CONFIG_FILE)
+        with open(config_file, 'w') as f:
+            json.dump(FLAGS.__dict__['__flags'], f, indent=4)
 
         return time_str, cpt_file, cpt_dir, train_dir, test_dir
 
     def get_latest_run_dir(self):
         """
         Get the latest run of this university model, if it exists. If it does not exist, returns None.
+        This will also ensure that the latest run has a matching TensorFlow configuration as the current
+        configuration loaded into the university.
         :return: The latest run checkpoint directory, or none.
         """
         latest_run = None
         if tf.gfile.Exists(self.workspace):
             run_dir = os.path.join(self.workspace, self.model_dir)
             if tf.gfile.Exists(run_dir):
-                all_runs = sorted(os.listdir(run_dir), key=lambda x: datetime.datetime.strptime(x, DATETIME_FORMAT))
+                all_runs = sorted(os.listdir(run_dir), key=lambda x: datetime.datetime.strptime(x, DATETIME_FORMAT),
+                                  reverse=True)
                 if len(all_runs) > 0:
-                    print("Found", len(all_runs), "runs. Selecting the latest", all_runs[0])
-                    latest_run = all_runs[0]
+                    print("Found", len(all_runs), "runs. Looking for one with a matching TensorFlow configuration.")
+                    current_config = FLAGS.__dict__['__flags']
+                    for run in all_runs:
+                        current_config_path = os.path.join(run_dir, run, FLAG_CONFIG_FILE)
+                        if tf.gfile.Exists(current_config_path):
+                            with open(current_config_path, 'r') as f:
+                                run_config = json.load(f)
+                            if current_config == run_config:
+                                print("Run", run,
+                                      "is the latest run with a matching configuration. Selecting this one.")
+                                latest_run = run
+                                break
         return latest_run
 
     def get_evaluation(self, model_checkpoint):
