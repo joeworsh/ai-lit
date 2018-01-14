@@ -63,7 +63,7 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         :return: Labels and bodies tensors for input.
         """
         training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
-                                                                self.vocab, FLAGS.document_length)
+                                                                self.vocab, end_index=FLAGS.document_length)
         train_iterator = training_dataset.make_one_shot_iterator()
         labels, bodies = train_iterator.get_next()
         return labels, bodies
@@ -74,7 +74,7 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         :return: Labels and bodies tensors for input.
         """
         testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
-                                                              self.vocab, FLAGS.document_length)
+                                                              self.vocab, end_index=FLAGS.document_length)
         test_iterator = testing_dataset.make_one_shot_iterator()
         labels, bodies = test_iterator.get_next()
         return labels, bodies

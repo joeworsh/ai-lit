@@ -19,38 +19,39 @@ TRAIN_TITLE_RECORDS = 'train_gb_full.tfrecords'
 TEST_TITLE_RECORDS = 'test_gb_full.tfrecrods'
 
 
-def get_training_dataset(workspace, class_count, vocab, doc_length=None):
+def get_training_dataset(workspace, class_count, vocab, start_index=None, end_index=None):
     """
     Get the GB full training dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
     :param vocab: The set of unique terms used for this dataset.
-    :param doc_length: The set document length of the full dataset.
+    :param start_index: The beginning index to slice from each record. Can be None to start from the beginning.
+    :param end_index: The end index to slice from each record. Can be None to go all the way to the end.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count, vocab, doc_length)
+    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count, vocab, start_index, end_index)
 
 
-def get_testing_dataset(workspace, class_count, vocab, doc_length=None):
+def get_testing_dataset(workspace, class_count, vocab, start_index=None, end_index=None):
     """
     Get the GB full testing dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
-    :param vocab: The set of unique terms used for this dataset.
-    :param doc_length: The set document length of the full dataset.
+    :param start_index: The beginning index to slice from each record. Can be None to start from the beginning.
+    :param end_index: The end index to slice from each record. Can be None to go all the way to the end.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count, vocab, doc_length)
+    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count, vocab, start_index, end_index)
 
 
-def get_dataset(workspace, tf_file, class_count, vocab, doc_length=None):
+def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_index=None):
     """
     Retrieve the defining GB full dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param tf_file: The TFRecords file to parse.
     :param class_count: The number of classes to be classified.
-    :param vocab: The set of unique terms used for this dataset.
-    :param doc_length: The set document length of the full dataset.
+    :param start_index: The beginning index to slice from each record. Can be None to start from the beginning.
+    :param end_index: The end index to slice from each record. Can be None to go all the way to the end.
     :return: The label and value record tensors from the dataset.
     """
 
@@ -69,8 +70,7 @@ def get_dataset(workspace, tf_file, class_count, vocab, doc_length=None):
             sequence_features=seq_features)
         y = tf.one_hot(context_parsed["y"][0], class_count, dtype=tf.int64)
         x = seq_parsed["x"]
-        if doc_length is not None:
-            x = x[:doc_length]
+        x = x[start_index:end_index]
         x = tf.clip_by_value(x, 0, vocab_cap)
         return y, x
 
@@ -81,10 +81,15 @@ def get_dataset(workspace, tf_file, class_count, vocab, doc_length=None):
     dataset = tf.contrib.data.TFRecordDataset(tf_filepath)
     dataset = dataset.map(_parse_function)
     dataset = dataset.shuffle(buffer_size=FLAGS.batch_queue_capacity)
-    if doc_length is not None:
-        dataset = dataset.padded_batch(FLAGS.batch_size, padded_shapes=([class_count], [doc_length]))
+    if start_index is not None and end_index is not None:
+        dataset_len = abs(end_index - start_index)
+    elif start_index is not None:
+        dataset_len = abs(start_index)
+    elif end_index is not None:
+        dataset_len = abs(end_index)
     else:
-        dataset = dataset.padded_batch(FLAGS.batch_size, padded_shapes=([class_count], [-1]))
+        dataset_len = -1
+    dataset = dataset.padded_batch(FLAGS.batch_size, padded_shapes=([class_count], [dataset_len]))
     dataset = dataset.filter(filter_batch)
     dataset = dataset.repeat(FLAGS.epochs)
     return dataset
