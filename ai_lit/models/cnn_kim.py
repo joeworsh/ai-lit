@@ -11,6 +11,8 @@ tf.flags.DEFINE_integer("num_filters", 128,
                         "The total number of filters for each filter size in the graph.")
 tf.flags.DEFINE_integer("embedding_size", 300,
                         "The number of dimensions to use when learning word embeddings from the corpus.")
+tf.flags.DEFINE_integer("l2_constraint", 0.001,
+                        "The L2 constraint that is applied to the weights during training.")
 tf.flags.DEFINE_float("learning_rate", 1e-4,
                       "The adam learning rate applied to CNN optimization.")
 
@@ -30,7 +32,10 @@ class CnnKim:
         # set up a top-level node titled embedding
         with tf.name_scope("embedding"):
             if pretrained_embeddings is None:
-                embedding_lookup = tf.Variable(tf.random_uniform([term_count, FLAGS.embedding_size], -1.0, 1.0))
+                embedding_lookup = tf.get_variable("embedding_lookup",
+                                                   initializer=tf.random_uniform([term_count, FLAGS.embedding_size],
+                                                                                 -1.0, 1.0),
+                                                   regularizer=tf.contrib.layers.l2_regularizer(FLAGS.l2_constraint))
             else:
                 embedding_lookup = pretrained_embeddings
             embedded_chars = tf.nn.embedding_lookup(embedding_lookup, self.input_x)
@@ -41,14 +46,15 @@ class CnnKim:
         pooled_outputs = []
         filters = list(map(int, FLAGS.filters.split(",")))
         for filter_size in filters:
-            with tf.name_scope("conv-maxpool-%s" % filter_size):
+            with tf.variable_scope("conv-maxpool-" + str(filter_size)):
                 # set up the convolutional layer for this filter size
                 filter_shape = tf.TensorShape([filter_size, FLAGS.embedding_size, 1, FLAGS.num_filters])
-                W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")
+                w = tf.get_variable("W", initializer=tf.truncated_normal(filter_shape, stddev=0.1),
+                                    regularizer=tf.contrib.layers.l2_regularizer(FLAGS.l2_constraint))
                 b = tf.Variable(tf.constant(0.1, shape=[FLAGS.num_filters]), name="b")
                 conv = tf.nn.conv2d(
                     embedded_chars,
-                    W,
+                    w,
                     strides=[1, 1, 1, 1],
                     padding="VALID",
                     name="conv")
@@ -70,25 +76,25 @@ class CnnKim:
 
         # add a dropout layer which is used prevent neurons from "co-adapting"
         # which forces them to learn individually useful features
-        with tf.name_scope("dropout"):
-            h_drop = tf.nn.dropout(h_pool_flat, self.dropout_keep_prob)
+        h_drop = tf.nn.dropout(h_pool_flat, self.dropout_keep_prob)
 
         # the output layer from max-pooling with dropout can produce a matrix
         # which contains the scores of each class in the CNN
-        with tf.name_scope("output"):
-            W = tf.Variable(tf.truncated_normal([num_filters_total, subject_count], stddev=0.1), name="W")
+        with tf.variable_scope("output"):
+            w = tf.get_variable("W", initializer=tf.truncated_normal([num_filters_total, subject_count], stddev=0.1),
+                                regularizer=tf.contrib.layers.l2_regularizer(FLAGS.l2_constraint))
             b = tf.Variable(tf.constant(0.1, shape=[subject_count]), name="b")
-            self.scores = tf.nn.xw_plus_b(h_drop, W, b, name="scores")
+            self.scores = tf.nn.xw_plus_b(h_drop, w, b, name="scores")
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
         # set up the cross-entropy loss measurements so that network error
         # can be minimized
-        with tf.name_scope("loss"):
+        with tf.variable_scope("loss"):
             losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
-            self.loss = tf.reduce_mean(losses)
+            self.loss = tf.reduce_mean(losses) + tf.losses.get_regularization_loss()
 
         # additionally set up an accuracy calculation for training and testing
-        with tf.name_scope("accuracy"):
+        with tf.variable_scope("accuracy"):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
 

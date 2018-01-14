@@ -225,17 +225,19 @@ class AILitUniversity:
                 coord.request_stop()
                 coord.join(threads)
 
+        targets = [int(t) for t in targets]
         eval_targets_file = os.path.join(ckpt_dir, EVAL_TARGETS_FILE)
         if os.path.exists(eval_targets_file):
             tf.gfile.Remove(eval_targets_file)
         with open(eval_targets_file, 'w') as f:
-            json.dump([int(t) for t in targets], f, indent=4)  # note must convert from Int32 class to primitive
+            json.dump(targets, f, indent=4)  # note must convert from Int32 class to primitive
 
+        predictions = [int(p) for p in predictions]
         eval_preds_file = os.path.join(ckpt_dir, EVAL_PREDICTIONS_FILE)
         if os.path.exists(eval_preds_file):
             tf.gfile.Remove(eval_preds_file)
         with open(eval_preds_file, 'w') as f:
-            json.dump([int(p) for p in predictions], f, indent=4)  # note must convert from Int32 class to primitive
+            json.dump(predictions, f, indent=4)  # note must convert from Int32 class to primitive
 
         return targets, predictions
 
@@ -277,8 +279,9 @@ class AILitUniversity:
             run_dir = os.path.join(self.workspace, self.model_dir)
             if tf.gfile.Exists(run_dir):
                 all_runs = sorted(os.listdir(run_dir), key=lambda x: datetime.datetime.strptime(x, DATETIME_FORMAT))
-                print("Found", len(all_runs), "runs. Selecting the latest", all_runs[0])
-                latest_run = all_runs[0]
+                if len(all_runs) > 0:
+                    print("Found", len(all_runs), "runs. Selecting the latest", all_runs[0])
+                    latest_run = all_runs[0]
         return latest_run
 
     def get_evaluation(self, model_checkpoint):
