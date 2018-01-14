@@ -3,6 +3,7 @@
 
 # no datasets and workspaces should be checked in
 workspace/*
+**/.ipynb_checkpoints/*
 
 # dont want any python environments
 venv/
