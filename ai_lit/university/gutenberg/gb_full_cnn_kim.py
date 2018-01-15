@@ -11,6 +11,8 @@ from ai_lit.university import ai_lit_university
 
 import tensorflow as tf
 
+from enum import Enum
+
 # training parameters
 tf.flags.DEFINE_integer("document_length", 5000,
                         "The padding and clipped length of each document for CNN processing.")
@@ -26,23 +28,35 @@ tf.flags.DEFINE_string("pretrained_embedding_model", "",
 FLAGS = tf.flags.FLAGS
 
 
+class TextWindow(Enum):
+    """
+    An enumeration to tell the university where it should pull its window of text from the full text body
+    of a Gutenberg record.
+    """
+    beginning = 1
+    middle = 2
+    end = 3
+
+
 class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
     """
     This is an AI Lit university for training CNN-Kim on the Gutenberg Full text dataset.
     """
 
-    def __init__(self, model_dir, workspace, dataset_wkspc):
+    def __init__(self, model_dir, workspace, dataset_wkspc, text_window=TextWindow.beginning):
         """
         Initialize the GB Full CNN Kim university.
         :param model_dir: The directory where this model is stored.
         :param workspace: The workspace directory of this university.
         :param dataset_wkspc: The GB input workspace where all inputs are stored.
+        :param text_window: The window (beginning, middle, end) where the text is pulled from.
         """
         super().__init__(model_dir, workspace)
         self.dataset_wkspc = dataset_wkspc
         self.subjects = gb_input.get_subjects(self.dataset_wkspc)
         self.vocab = input_util.get_sorted_vocab(gb_input.get_vocabulary(self.dataset_wkspc))
         self.vocab = self.vocab[:FLAGS.vocab_count]
+        self.text_window = text_window
 
     def get_model(self, graph):
         """
@@ -62,8 +76,15 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         Supply the training data for GB Full text dataset.
         :return: Labels and bodies tensors for input.
         """
-        training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
-                                                                self.vocab, end_index=FLAGS.document_length)
+        if self.text_window is TextWindow.beginning:
+            training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                    self.vocab, end_index=FLAGS.document_length)
+        elif self.text_window is TextWindow.end:
+            training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                    self.vocab, start_index=-FLAGS.document_length)
+        else:
+            raise NotImplementedError("Middle window not supported yet.")
+
         train_iterator = training_dataset.make_one_shot_iterator()
         labels, bodies = train_iterator.get_next()
         return labels, bodies
@@ -73,8 +94,15 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         Supply the evaluation data for GB Full text dataset.
         :return: Labels and bodies tensors for input.
         """
-        testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
-                                                              self.vocab, end_index=FLAGS.document_length)
+        if self.text_window is TextWindow.beginning:
+            testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                    self.vocab, end_index=FLAGS.document_length)
+        elif self.text_window is TextWindow.end:
+            testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                    self.vocab, start_index=-FLAGS.document_length)
+        else:
+            raise NotImplementedError("Middle window not supported yet.")
+
         test_iterator = testing_dataset.make_one_shot_iterator()
         labels, bodies = test_iterator.get_next()
         return labels, bodies
