@@ -7,6 +7,32 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
+
+
+def train_and_evaluate(university, model_name, evaluation_name):
+    """
+    This is a convenience method to train, if needed, and evaluate a university.
+    :param university: The university to potentially train and evaluate.
+    :param model_name: The name of the model supported in this event.
+    :param evaluation_name: The name of the evaluation produced in this event.
+    :return: The accuracy, F1-measure and confusion matrix of the evaluation.
+    """
+    latest_run = university.get_latest_run_dir()
+    if latest_run is None:
+        latest_run = university.train()
+    targets, predictions = university.get_or_perform_evaluation(latest_run, evaluation_name)
+
+    accuracy = accuracy_score(targets, predictions)
+    f1 = f1_score(targets, predictions, average='macro')
+    print("Accuracy:", accuracy)
+    print("F1:", f1)
+
+    cnf_matrix = confusion_matrix(targets, predictions)
+    plot_confusion_matrix(cnf_matrix, classes=university.subjects, normalize=True,
+                          title=model_name + '-' + evaluation_name + ' Confusion Matrix')
+    return accuracy, f1, cnf_matrix
+
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -24,11 +50,6 @@ def plot_confusion_matrix(cm, classes,
     plt.figure()
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)

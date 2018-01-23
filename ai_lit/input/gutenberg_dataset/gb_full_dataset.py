@@ -82,7 +82,8 @@ def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_in
         y = tf.one_hot(context_parsed["y"][0], class_count, dtype=tf.int64)
         x = seq_parsed["x"]
         if random_crop:
-            x = tf.random_crop(x, crop_size)
+            random_window = tf.where(tf.less(crop_size, tf.shape(x)[0]), x=crop_size, y=tf.shape(x)[0])
+            x = tf.random_crop(x, [random_window])
         else:
             x = x[start_index:end_index]
         x = tf.clip_by_value(x, 0, vocab_cap)

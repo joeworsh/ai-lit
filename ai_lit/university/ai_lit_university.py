@@ -338,5 +338,5 @@ class AILitUniversity:
         targets, predictions = self.get_evaluation(model_checkpoint, evaluation_name)
         if targets is None or predictions is None:
             print("Could not find a saved run in the checkpoint directory. Will perform evaluation now.")
-            target, predictions = self.evaluate(model_checkpoint, evaluation_name)
+            targets, predictions = self.evaluate(model_checkpoint, evaluation_name)
         return targets, predictions
