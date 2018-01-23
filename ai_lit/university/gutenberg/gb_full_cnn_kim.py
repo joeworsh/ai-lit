@@ -36,6 +36,7 @@ class TextWindow(Enum):
     beginning = 1
     middle = 2
     end = 3
+    random = 4
 
 
 class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
@@ -43,13 +44,15 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
     This is an AI Lit university for training CNN-Kim on the Gutenberg Full text dataset.
     """
 
-    def __init__(self, model_dir, workspace, dataset_wkspc, text_window=TextWindow.beginning):
+    def __init__(self, model_dir, workspace, dataset_wkspc, text_window=TextWindow.beginning, starting_idx=0):
         """
         Initialize the GB Full CNN Kim university.
         :param model_dir: The directory where this model is stored.
         :param workspace: The workspace directory of this university.
         :param dataset_wkspc: The GB input workspace where all inputs are stored.
         :param text_window: The window (beginning, middle, end) where the text is pulled from.
+        :param starting_idx: When using text_window.end, this parameter will define the starting
+        index used for extracting the text window.
         """
         super().__init__(model_dir, workspace)
         self.dataset_wkspc = dataset_wkspc
@@ -57,6 +60,7 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         self.vocab = input_util.get_sorted_vocab(gb_input.get_vocabulary(self.dataset_wkspc))
         self.vocab = self.vocab[:FLAGS.vocab_count]
         self.text_window = text_window
+        self.starting_idx = starting_idx
 
     def get_model(self, graph):
         """
@@ -82,8 +86,14 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         elif self.text_window is TextWindow.end:
             training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
                                                                     self.vocab, start_index=-FLAGS.document_length)
+        elif self.text_window is TextWindow.random:
+            training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                    self.vocab, random_crop=True,
+                                                                    crop_size=FLAGS.document_length)
         else:
-            raise NotImplementedError("Middle window not supported yet.")
+            training_dataset = gb_full_dataset.get_training_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                    self.vocab, start_index=self.starting_idx,
+                                                                    end_index=self.starting_idx + FLAGS.document_length)
 
         train_iterator = training_dataset.make_one_shot_iterator()
         labels, bodies = train_iterator.get_next()
@@ -96,12 +106,18 @@ class GbFullCnnKimUniversity(ai_lit_university.AILitUniversity):
         """
         if self.text_window is TextWindow.beginning:
             testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
-                                                                    self.vocab, end_index=FLAGS.document_length)
+                                                                  self.vocab, end_index=FLAGS.document_length)
         elif self.text_window is TextWindow.end:
             testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
-                                                                    self.vocab, start_index=-FLAGS.document_length)
+                                                                  self.vocab, start_index=-FLAGS.document_length)
+        elif self.text_window is TextWindow.random:
+            testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                  self.vocab, random_crop=True,
+                                                                  crop_size=FLAGS.document_length)
         else:
-            raise NotImplementedError("Middle window not supported yet.")
+            testing_dataset = gb_full_dataset.get_testing_dataset(self.dataset_wkspc, len(self.subjects),
+                                                                  self.vocab, start_index=self.starting_idx,
+                                                                  end_index=self.starting_idx + FLAGS.document_length)
 
         test_iterator = testing_dataset.make_one_shot_iterator()
         labels, bodies = test_iterator.get_next()

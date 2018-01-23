@@ -162,10 +162,12 @@ class AILitUniversity:
 
         return run_name
 
-    def evaluate(self, model_checkpoint):
+    def evaluate(self, model_checkpoint, evaluation_name):
         """
         Evaluate the model in this university using the parameters stored in the provided checkpoint.
         :param model_checkpoint: The directory where the checkpoint to evaluate is stored.
+        :param evaluation_name: The name of the evaluation to perform. This allows multiple evaluations against the
+        same trained model.
         :return: The set of total targets and the associated predictions. Can be used for further analysis.
         """
         targets = []
@@ -174,6 +176,11 @@ class AILitUniversity:
         ckpt_restore_dir = os.path.join(ckpt_dir, "checkpoints")
         assert os.path.exists(ckpt_dir)
         assert os.path.exists(ckpt_restore_dir)
+
+        # create the evaluation directory for the evaluation to perform
+        eval_dir = os.path.join(ckpt_dir, evaluation_name)
+        assert not os.path.exists(eval_dir)
+        tf.gfile.MakeDirs(eval_dir)
 
         with tf.Graph().as_default() as tf_graph:
             labels, bodies = self.get_evaluation_data()
@@ -227,16 +234,12 @@ class AILitUniversity:
                 coord.join(threads)
 
         targets = [int(t) for t in targets]
-        eval_targets_file = os.path.join(ckpt_dir, EVAL_TARGETS_FILE)
-        if os.path.exists(eval_targets_file):
-            tf.gfile.Remove(eval_targets_file)
+        eval_targets_file = os.path.join(eval_dir, EVAL_TARGETS_FILE)
         with open(eval_targets_file, 'w') as f:
             json.dump(targets, f, indent=4)  # note must convert from Int32 class to primitive
 
         predictions = [int(p) for p in predictions]
-        eval_preds_file = os.path.join(ckpt_dir, EVAL_PREDICTIONS_FILE)
-        if os.path.exists(eval_preds_file):
-            tf.gfile.Remove(eval_preds_file)
+        eval_preds_file = os.path.join(eval_dir, EVAL_PREDICTIONS_FILE)
         with open(eval_preds_file, 'w') as f:
             json.dump(predictions, f, indent=4)  # note must convert from Int32 class to primitive
 
@@ -298,11 +301,13 @@ class AILitUniversity:
                                 break
         return latest_run
 
-    def get_evaluation(self, model_checkpoint):
+    def get_evaluation(self, model_checkpoint, evaluation_name):
         """
         If an evaluation run has already been saved to the checkpoint workspace, load the targets and precisions.
         Returns None, None if an evaluation does not exist.
         :param model_checkpoint: The checkpoint directory to check for an evaluation.
+        :param evaluation_name: The name of the evaluation to load. This allows multiple evaluations against the
+        same trained model.
         :return: targets, predictions or None, None
         """
         ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)
@@ -310,24 +315,28 @@ class AILitUniversity:
         targets = None
         predictions = None
 
-        eval_targets_file = os.path.join(ckpt_dir, EVAL_TARGETS_FILE)
-        eval_preds_file = os.path.join(ckpt_dir, EVAL_PREDICTIONS_FILE)
-        if os.path.exists(eval_targets_file) and os.path.exists(eval_preds_file):
-            with open(eval_targets_file, 'r') as f:
-                targets = json.load(f)
-            with open(eval_preds_file, 'r') as f:
-                predictions = json.load(f)
+        eval_dir = os.path.join(ckpt_dir, evaluation_name)
+        if os.path.exists(eval_dir):
+            eval_targets_file = os.path.join(eval_dir, EVAL_TARGETS_FILE)
+            eval_preds_file = os.path.join(eval_dir, EVAL_PREDICTIONS_FILE)
+            if os.path.exists(eval_targets_file) and os.path.exists(eval_preds_file):
+                with open(eval_targets_file, 'r') as f:
+                    targets = json.load(f)
+                with open(eval_preds_file, 'r') as f:
+                    predictions = json.load(f)
 
         return targets, predictions
 
-    def get_or_perform_evaluation(self, model_checkpoint):
+    def get_or_perform_evaluation(self, model_checkpoint, evaluation_name):
         """
         Helper method to retrieve an evaluation (or perform one if necessary) on the provided checkpoint directory.
         :param model_checkpoint: The checkpoint directory to retrieve an evaluation for.
+        :param evaluation_name: The name of the evaluation to load or perform. This allows multiple evaluations
+        against the same trained model.
         :return: targets, predictions
         """
-        targets, predictions = self.get_evaluation(model_checkpoint)
+        targets, predictions = self.get_evaluation(model_checkpoint, evaluation_name)
         if targets is None or predictions is None:
             print("Could not find a saved run in the checkpoint directory. Will perform evaluation now.")
-            target, predictions = self.evaluate(model_checkpoint)
+            target, predictions = self.evaluate(model_checkpoint, evaluation_name)
         return targets, predictions

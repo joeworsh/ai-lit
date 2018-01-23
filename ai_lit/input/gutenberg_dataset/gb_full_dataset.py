@@ -19,7 +19,8 @@ TRAIN_TITLE_RECORDS = 'train_gb_full.tfrecords'
 TEST_TITLE_RECORDS = 'test_gb_full.tfrecrods'
 
 
-def get_training_dataset(workspace, class_count, vocab, start_index=None, end_index=None):
+def get_training_dataset(workspace, class_count, vocab, start_index=None, end_index=None,
+                         random_crop=False, crop_size=None):
     """
     Get the GB full training dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
@@ -27,24 +28,32 @@ def get_training_dataset(workspace, class_count, vocab, start_index=None, end_in
     :param vocab: The set of unique terms used for this dataset.
     :param start_index: The beginning index to slice from each record. Can be None to start from the beginning.
     :param end_index: The end index to slice from each record. Can be None to go all the way to the end.
+    :param random_crop: When True, will use a random crop from each record.
+    :param crop_size: When using the random_crop argument, this defines the size of the crop window.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count, vocab, start_index, end_index)
+    return get_dataset(workspace, TRAIN_TITLE_RECORDS, class_count, vocab, start_index, end_index, random_crop,
+                       crop_size)
 
 
-def get_testing_dataset(workspace, class_count, vocab, start_index=None, end_index=None):
+def get_testing_dataset(workspace, class_count, vocab, start_index=None, end_index=None,
+                        random_crop=False, crop_size=None):
     """
     Get the GB full testing dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
     :param class_count: The number of classes to be classified.
     :param start_index: The beginning index to slice from each record. Can be None to start from the beginning.
     :param end_index: The end index to slice from each record. Can be None to go all the way to the end.
+    :param random_crop: When True, will use a random crop from each record.
+    :param crop_size: When using the random_crop argument, this defines the size of the crop window.
     :return: The label and value record tensors from the dataset.
     """
-    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count, vocab, start_index, end_index)
+    return get_dataset(workspace, TEST_TITLE_RECORDS, class_count, vocab, start_index, end_index, random_crop,
+                       crop_size)
 
 
-def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_index=None):
+def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_index=None,
+                random_crop=False, crop_size=None):
     """
     Retrieve the defining GB full dataset.
     :param workspace: The workspace directory where the TFRecords are kept.
@@ -52,6 +61,8 @@ def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_in
     :param class_count: The number of classes to be classified.
     :param start_index: The beginning index to slice from each record. Can be None to start from the beginning.
     :param end_index: The end index to slice from each record. Can be None to go all the way to the end.
+    :param random_crop: When True, will use a random crop from each record.
+    :param crop_size: When using the random_crop argument, this defines the size of the crop window.
     :return: The label and value record tensors from the dataset.
     """
 
@@ -70,7 +81,10 @@ def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_in
             sequence_features=seq_features)
         y = tf.one_hot(context_parsed["y"][0], class_count, dtype=tf.int64)
         x = seq_parsed["x"]
-        x = x[start_index:end_index]
+        if random_crop:
+            x = tf.random_crop(x, crop_size)
+        else:
+            x = x[start_index:end_index]
         x = tf.clip_by_value(x, 0, vocab_cap)
         return y, x
 
