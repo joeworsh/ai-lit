@@ -1,10 +1,10 @@
 """
 An AI Lit university for training and evaluating the Gutenberg Full text dataset
-with the CNN-Kim model.
+with the standard LSTM model.
 """
 
 from ai_lit.input import input_util
-from ai_lit.models import cnn_kim
+from ai_lit.models import flat_lstm
 from ai_lit.university.gutenberg import gb_full_university
 from ai_lit.university.gutenberg.gb_full_university import TextWindow
 
@@ -21,14 +21,14 @@ tf.flags.DEFINE_string("pretrained_embedding_model", "",
 FLAGS = tf.flags.FLAGS
 
 
-class GbFullCnnKimUniversity(gb_full_university.GbFullUniversity):
+class GbFullFlatLstmUniversity(gb_full_university.GbFullUniversity):
     """
-    This is an AI Lit university for training CNN-Kim on the Gutenberg Full text dataset.
+    This is an AI Lit university for training a flat LSTM on the Gutenberg Full text dataset.
     """
 
     def __init__(self, model_dir, workspace, dataset_wkspc, text_window=TextWindow.beginning, starting_idx=0):
         """
-        Initialize the GB Full CNN Kim university.
+        Initialize the GB Full flat LSTM university.
         :param model_dir: The directory where this model is stored.
         :param workspace: The workspace directory of this university.
         :param dataset_wkspc: The GB input workspace where all inputs are stored.
@@ -40,7 +40,7 @@ class GbFullCnnKimUniversity(gb_full_university.GbFullUniversity):
 
     def get_model(self, graph):
         """
-        Build the CNN-Kim model for the GB Full text exercise
+        Build the flat LSTM model for the GB Full text exercise
         :param graph: The graph that the model belongs to.
         :return: The CNN-Kim model for the training/evaluation session.
         """
@@ -48,12 +48,12 @@ class GbFullCnnKimUniversity(gb_full_university.GbFullUniversity):
         if FLAGS.use_pretrained_embeddings:
             # Note: this uses the FLAGS.embedding_size imported from cnn_kim
             pretrained = input_util.get_pretrained_vectors(self.vocab, FLAGS.pretrained_embedding_model,
-                                                           FLAGS.embedding_size)
-        return cnn_kim.CnnKim(len(self.vocab), len(self.subjects), FLAGS.document_length, pretrained)
+                                                           FLAGS.word_embedding_size)
+        return flat_lstm.FlatLstm(len(self.vocab), len(self.subjects), FLAGS.document_length, pretrained)
 
     def perform_training_run(self, session, model, batch_y, batch_x):
         """
-        Perform a training run of the CNN-Kim on the GB full text batch.
+        Perform a training run of the flat LSTM on the GB full text batch.
         :param session: The training session under which the op is performed.
         :param model: The model we are going to train.
         :param batch_y: The batch of labels to predict.
@@ -73,7 +73,7 @@ class GbFullCnnKimUniversity(gb_full_university.GbFullUniversity):
 
     def perform_evaluation_run(self, session, model, batch_y, batch_x):
         """
-        Perform a validation or evaluation run of the CNN-Kim on the GB full text batch.
+        Perform a validation or evaluation run of the flat LSTM on the GB full text batch.
         :param session: The session under which the eval op is performed.
         :param model: The model we are going to evaluate.
         :param batch_y: The batch of labels to predict.
