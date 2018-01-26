@@ -80,8 +80,9 @@ class AILitUniversity:
     def train(self, save_rate=10, eval_rate=10):
         """
         Train the model on the designated dataset.
-        :param save_rate: The rate at which the model saves checkpoints to disk.
+        :param save_rate: The rate at which the model saves checkpoints to disk. If None, will only be saved at end.
         :param eval_rate: The rate at which the model is evaluated with the validation set, if a validation set is provided.
+        If None, will never be evaluated.
         :return: The run name which was trained. This is timestamp of the run in the model workspace.
         """
         run_name, cpt_file, cpt_dir, train_dir, test_dir = self.init_workspace()
@@ -114,6 +115,7 @@ class AILitUniversity:
 
                 # run until the inputs are exhausted
                 print("Begin training")
+                training_step = 0
                 try:
                     while True:
                         # get next batch from the list
@@ -121,6 +123,7 @@ class AILitUniversity:
 
                         summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_training_run(
                             session, model, batch_y, batch_x)
+                        training_step = step
                         time_str = datetime.datetime.now().isoformat()
                         clear_output(True)
                         print("{}: Training step {}".format(time_str, step))
@@ -133,10 +136,10 @@ class AILitUniversity:
                         train_writer.add_summary(summary, step)
 
                         # Save the variables to disk at the configured rate
-                        if step % save_rate == 0:
+                        if save_rate is not None and step % save_rate == 0:
                             saver.save(session, cpt_file, global_step=step)
 
-                        if v_labels is not None and v_bodies is not None and step % eval_rate == 0:
+                        if eval_rate is not None and v_labels is not None and v_bodies is not None and step % eval_rate == 0:
                             batch_y, batch_x = session.run([v_labels, v_bodies])
                             summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_evaluation_run(
                                 session, model, batch_y, batch_x)
@@ -152,6 +155,9 @@ class AILitUniversity:
 
                 except tf.errors.OutOfRangeError:
                     print("Training examples exhausted")
+
+                # save a final version of the model to disk
+                saver.save(session, cpt_file, global_step=training_step)
 
                 # close all resources before the session ends
                 print("Shutting down all network threads")

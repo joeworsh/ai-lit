@@ -16,7 +16,7 @@ tf.flags.DEFINE_integer("h3", 50,
                         "The dimensionality of the h3 hidden layer.")
 tf.flags.DEFINE_float("learning_rate", 1e-4,
                       "The adam learning rate applied to CNN optimization.")
-tf.flags.DEFINE_integer("l2_constraint", 3,
+tf.flags.DEFINE_integer("l2_constraint", 0.001,
                         "The L2 constraint for training.")
 
 FLAGS = tf.flags.FLAGS
@@ -26,6 +26,7 @@ class MeanMLP:
     """
     An AI_Lit model for flattening a sequence of terms and classifying within an MLP.
     """
+
     def __init__(self, term_count, subject_count, pretrained_embeddings=None):
         # set up tensorflow placeholders to training runtime
         self.input_x = tf.placeholder(tf.int32, [None, None], name="input_x")
@@ -45,22 +46,28 @@ class MeanMLP:
         reduced = tf.reduce_mean(embedded_chars, 1)
 
         # build the fully connected MLP with ReLU and dropout
-        h1 = tf.contrib.layers.fully_connected(reduced, FLAGS.h1)
+        h1 = tf.contrib.layers.fully_connected(reduced, FLAGS.h1, weights_regularizer=tf.contrib.layers.l2_regularizer(
+            FLAGS.l2_constraint))
         h1_dropout = tf.contrib.layers.dropout(h1, self.dropout_keep_prob)
 
-        h2 = tf.contrib.layers.fully_connected(h1_dropout, FLAGS.h2)
+        h2 = tf.contrib.layers.fully_connected(h1_dropout, FLAGS.h2,
+                                               weights_regularizer=tf.contrib.layers.l2_regularizer(
+                                                   FLAGS.l2_constraint))
         h2_dropout = tf.contrib.layers.dropout(h2, self.dropout_keep_prob)
 
-        h3 = tf.contrib.layers.fully_connected(h2_dropout, FLAGS.h3)
+        h3 = tf.contrib.layers.fully_connected(h2_dropout, FLAGS.h3,
+                                               weights_regularizer=tf.contrib.layers.l2_regularizer(
+                                                   FLAGS.l2_constraint))
         h3_dropout = tf.contrib.layers.dropout(h3, self.dropout_keep_prob)
 
-        self.scores = tf.contrib.layers.fully_connected(h3_dropout, subject_count, activation_fn=None)
+        self.scores = tf.contrib.layers.fully_connected(h3_dropout, subject_count, activation_fn=None,
+                                                        weights_regularizer=tf.contrib.layers.l2_regularizer(
+                                                            FLAGS.l2_constraint))
         self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
         with tf.name_scope("loss"):
             losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
-            self.loss = tf.reduce_mean(losses) + tf.contrib.layers.apply_regularization(
-                tf.contrib.layers.l2_regularizer(FLAGS.l2_constraint))
+            self.loss = tf.reduce_mean(losses) + tf.losses.get_regularization_loss()
 
         # additionally set up an accuracy calculation for training and testing
         with tf.name_scope("accuracy"):
