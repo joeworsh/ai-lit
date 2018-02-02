@@ -36,7 +36,7 @@ class FlatLstm:
         # input x is of size [batch_size, batch_doc_size]
         # input_y is of size [batch_size, subject_count]
         with tf.device("/cpu:0"):
-            self.input_x = tf.placeholder(tf.int32, [FLAGS.batch_size, doc_length], name="input_x")
+            self.input_x = tf.placeholder(tf.int32, [FLAGS.batch_size, None], name="input_x")
             self.input_y = tf.placeholder(tf.float32, [FLAGS.batch_size, subject_count], name="input_y")
             self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
             self.targets = tf.argmax(self.input_y, 1, name="targets")
