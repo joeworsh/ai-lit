@@ -55,24 +55,22 @@ class AILitUniversity:
         """
         raise NotImplementedError("All universities must implement this method.")
 
-    def perform_training_run(self, session, model, batch_y, batch_x):
+    def perform_training_run(self, session, model, training_batch):
         """
         Perform a training run of the provided model.
         :param session: The TensorFlow session where this run is held.
         :param model: The university model to run.
-        :param batch_y: The batch of labels which we are targeting.
-        :param batch_x: The batch of records which we are classifying
+        :param training_batch: The batch of input tensors for training the model. This is defined by get_training_data
         :return: The following output from the model: summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions
         """
         raise NotImplementedError("All universities must implement this method.")
 
-    def perform_evaluation_run(self, session, model, batch_y, batch_x):
+    def perform_evaluation_run(self, session, model, eval_batch):
         """
         Perform a validation or evaluation run of the provided model.
         :param session: The TensorFlow session where this run is held.
         :param model: The university model to run.
-        :param batch_y: The batch of labels which we are targeting.
-        :param batch_x: The batch of records which we are classifying
+        :param eval_batch: The batch of input tensors for evaluating the model. This is defined by get_evaluation_data
         :return: The following output from the model: summary, batch_loss, batch_accuracy, batch_targets, batch_predictions
         """
         raise NotImplementedError("All universities must implement this method.")
@@ -87,11 +85,11 @@ class AILitUniversity:
         """
         run_name, cpt_file, cpt_dir, train_dir, test_dir = self.init_workspace()
         with tf.Graph().as_default() as tf_graph:
-            labels, bodies = self.get_training_data()
+            training_tensors = list(self.get_training_data())
             try:
-                v_labels, v_bodies = self.get_validation_data()
+                validation_tensors = list(self.get_validation_data())
             except NotImplementedError:
-                v_labels, v_bodies = None, None
+                validation_tensors = None, None
 
             model = self.get_model(tf_graph)
 
@@ -119,10 +117,10 @@ class AILitUniversity:
                 try:
                     while True:
                         # get next batch from the list
-                        batch_y, batch_x = session.run([labels, bodies])
+                        training_batch = list(session.run(training_tensors))
 
                         summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_training_run(
-                            session, model, batch_y, batch_x)
+                            session, model, training_batch)
                         training_step = step
                         time_str = datetime.datetime.now().isoformat()
                         clear_output(True)
@@ -139,10 +137,10 @@ class AILitUniversity:
                         if save_rate is not None and step % save_rate == 0:
                             saver.save(session, cpt_file, global_step=step)
 
-                        if eval_rate is not None and v_labels is not None and v_bodies is not None and step % eval_rate == 0:
-                            batch_y, batch_x = session.run([v_labels, v_bodies])
+                        if eval_rate is not None and validation_tensors is not None and step % eval_rate == 0:
+                            validation_batch = list(session.run(validation_tensors))
                             summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_evaluation_run(
-                                session, model, batch_y, batch_x)
+                                session, model, validation_batch)
                             clear_output(True)
                             print("Validation Step")
                             print('Targets:')
@@ -190,7 +188,7 @@ class AILitUniversity:
         tf.gfile.MakeDirs(eval_dir)
 
         with tf.Graph().as_default() as tf_graph:
-            labels, bodies = self.get_evaluation_data()
+            eval_tensors = list(self.get_evaluation_data())
             model = self.get_model(tf_graph)
 
             # The op for initializing the variables.
@@ -217,9 +215,9 @@ class AILitUniversity:
                 print("Begin evaluation")
                 try:
                     while True:
-                        batch_y, batch_x = session.run([labels, bodies])
+                        eval_batch = list(session.run(eval_tensors))
                         summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_evaluation_run(
-                            session, model, batch_y, batch_x)
+                            session, model, eval_batch)
                         targets.extend(batch_targets)
                         predictions.extend(batch_predictions)
 

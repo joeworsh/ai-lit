@@ -51,18 +51,17 @@ class GbFullCnnKimUniversity(gb_full_university.GbFullUniversity):
                                                            FLAGS.embedding_size)
         return cnn_kim.CnnKim(len(self.vocab), len(self.subjects), FLAGS.document_length, pretrained)
 
-    def perform_training_run(self, session, model, batch_y, batch_x):
+    def perform_training_run(self, session, model, training_batch):
         """
         Perform a training run of the CNN-Kim on the GB full text batch.
         :param session: The training session under which the op is performed.
         :param model: The model we are going to train.
-        :param batch_y: The batch of labels to predict.
-        :param batch_x: The batch of text bodies to classify.
+        :param training_batch: The batch of labels and bodies to predict.
         :return: summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions
         """
         feed_dict = {
-            model.input_x: batch_x,
-            model.input_y: batch_y,
+            model.input_x: training_batch[1],
+            model.input_y: training_batch[0],
             model.dropout_keep_prob: FLAGS.dropout}
         _, summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions = session.run(
             [model.train_op, model.summary_op, model.global_step, model.loss, model.accuracy, model.targets,
@@ -71,18 +70,17 @@ class GbFullCnnKimUniversity(gb_full_university.GbFullUniversity):
 
         return summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions
 
-    def perform_evaluation_run(self, session, model, batch_y, batch_x):
+    def perform_evaluation_run(self, session, model, eval_batch):
         """
         Perform a validation or evaluation run of the CNN-Kim on the GB full text batch.
         :param session: The session under which the eval op is performed.
         :param model: The model we are going to evaluate.
-        :param batch_y: The batch of labels to predict.
         :param batch_x: The batch of text bodies to classify.
         :return: summary, batch_loss, batch_accuracy, batch_targets, batch_predictions
         """
         feed_dict = {
-            model.input_x: batch_x,
-            model.input_y: batch_y,
+            model.input_x: eval_batch[1],
+            model.input_y: eval_batch[0],
             model.dropout_keep_prob: 1}
         summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = session.run(
             [model.summary_op, model.loss, model.accuracy, model.targets, model.predictions],

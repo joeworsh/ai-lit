@@ -46,7 +46,7 @@ class GbChapterUniversity(ai_lit_university.AILitUniversity):
                                                                     self.vocab, FLAGS.chapter_length)
         train_iterator = training_dataset.make_one_shot_iterator()
         labels, bodies, book_ids, chapter_idx = train_iterator.get_next()
-        return labels, bodies
+        return labels, bodies, book_ids, chapter_idx
 
     def get_evaluation_data(self):
         """
@@ -57,4 +57,4 @@ class GbChapterUniversity(ai_lit_university.AILitUniversity):
                                                               self.vocab, FLAGS.chapter_length)
         test_iterator = testing_dataset.make_one_shot_iterator()
         labels, bodies, book_ids, chapter_idx = test_iterator.get_next()
-        return labels, bodies
+        return labels, bodies, book_ids, chapter_idx
