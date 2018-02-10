@@ -4,7 +4,7 @@ Set of utilities for working with datasets, TensorFlow, TFRecords and configurat
 
 import tensorflow as tf
 
-tf.flags.DEFINE_integer("epochs", 100,
+tf.flags.DEFINE_integer("epochs", 10,
                         "Defines the number of epochs for a training run.")
 tf.flags.DEFINE_integer("batch_size", 20,
                         "The number of records to process per batch during training.")

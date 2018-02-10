@@ -176,6 +176,7 @@ class AILitUniversity:
         same trained model.
         :return: The set of total targets and the associated predictions. Can be used for further analysis.
         """
+        FLAGS.epochs = 1
         targets = []
         predictions = []
         ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)

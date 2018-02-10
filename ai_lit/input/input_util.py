@@ -6,6 +6,7 @@ from gensim.models.keyedvectors import KeyedVectors
 
 import gensim
 import numpy as np
+import re
 import tensorflow as tf
 
 PAD_TOKEN = "<pad>"
@@ -13,6 +14,14 @@ UNK_TOKEN = "<unk>"
 
 UNKNOWN_AUTHOR = "unknown"
 UNKNOWN_TITLE = "unknown"
+
+# regexes used for splitting and parsing text body files
+para_split = re.compile(r"\n+")
+chapter_split = re.compile(r"^\s*chapter\s+.*$", re.IGNORECASE | re.MULTILINE)
+part_split = re.compile(r"^\s*part\s+.*$", re.IGNORECASE | re.MULTILINE)
+section_split = re.compile(r"^\s*section\s+.*$", re.IGNORECASE | re.MULTILINE)
+num_section_split = re.compile(r"^\s*[0-9]+\.?.*$", re.IGNORECASE | re.MULTILINE)
+rom_num_section_split = re.compile(r"^\s*[ivxlc]+\.?.*$", re.IGNORECASE | re.MULTILINE)
 
 
 def train_word2vec(corpus, trained_model_file, dimensions=100, binary=True):
@@ -78,3 +87,21 @@ def lookup_word(word, sorted_vocab_list):
         return sorted_vocab_list.index(word)
     else:
         return sorted_vocab_list.index(UNK_TOKEN)
+
+
+def parse_chapters(body):
+    """
+    Parse the provided body file into chapters and return the chapters.
+    """
+    if re.search(chapter_split, body):
+        return re.split(chapter_split, body)
+    elif re.search(part_split, body):
+        return re.split(part_split, body)
+    elif re.search(section_split, body):
+        return re.split(section_split, body)
+    elif re.search(num_section_split, body):
+        return re.split(num_section_split, body)
+    elif re.search(rom_num_section_split, body):
+        return re.split(rom_num_section_split, body)
+    else:
+        return [body]
