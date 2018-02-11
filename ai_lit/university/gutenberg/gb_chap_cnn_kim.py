@@ -83,4 +83,7 @@ class GbChaptersCnnKimUniversity(gb_chapters_university.GbChapterUniversity):
             [model.summary_op, model.loss, model.accuracy, model.targets, model.predictions],
             feed_dict)
 
+        # be sure to record the evaluation run for future book aggregation
+        self.record_evaluation_entry(batch_targets, batch_predictions, eval_batch[2], eval_batch[3])
+
         return summary, batch_loss, batch_accuracy, batch_targets, batch_predictions

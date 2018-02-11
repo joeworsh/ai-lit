@@ -106,7 +106,7 @@ def extract_dataset(workspace, class_count, vocab, chapter_length, train=True):
     :return: list of list of ints and the title map from file
     """
     FLAGS.epochs = 1
-    FLAGS.batch_size = 1
+    FLAGS.batch_size = 20
     records = {}
     with tf.Graph().as_default():
         if train:

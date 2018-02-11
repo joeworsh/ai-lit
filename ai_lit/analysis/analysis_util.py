@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 
-def train_and_evaluate(university, model_name, evaluation_name, save_rate=10, eval_rate=10):
+def train_and_evaluate(university, model_name, evaluation_name, save_rate=10, eval_rate=10, **kwargs):
     """
     This is a convenience method to train, if needed, and evaluate a university.
     :param university: The university to potentially train and evaluate.
@@ -19,12 +19,13 @@ def train_and_evaluate(university, model_name, evaluation_name, save_rate=10, ev
     :param save_rate: The rate at which the model saves checkpoints to disk. If None, will only be saved at end.
     :param eval_rate: The rate at which the model is evaluated with the validation set, if a validation set is provided.
     If None, will never be evaluated.
+    :param kwargs Set of key-word arguments to be leveraged by individual implementors
     :return: The accuracy, F1-measure and confusion matrix of the evaluation.
     """
     latest_run = university.get_latest_run_dir()
     if latest_run is None:
-        latest_run = university.train(save_rate, eval_rate)
-    targets, predictions = university.get_or_perform_evaluation(latest_run, evaluation_name)
+        latest_run = university.train(save_rate, eval_rate, **kwargs)
+    targets, predictions = university.get_or_perform_evaluation(latest_run, evaluation_name, **kwargs)
 
     accuracy = accuracy_score(targets, predictions)
     f1 = f1_score(targets, predictions, average='macro')

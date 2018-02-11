@@ -75,12 +75,13 @@ class AILitUniversity:
         """
         raise NotImplementedError("All universities must implement this method.")
 
-    def train(self, save_rate=10, eval_rate=10):
+    def train(self, save_rate=10, eval_rate=10, **kwargs):
         """
         Train the model on the designated dataset.
         :param save_rate: The rate at which the model saves checkpoints to disk. If None, will only be saved at end.
         :param eval_rate: The rate at which the model is evaluated with the validation set, if a validation set is provided.
         If None, will never be evaluated.
+        :param kwargs Set of key-word arguments to be leveraged by individual implementors
         :return: The run name which was trained. This is timestamp of the run in the model workspace.
         """
         run_name, cpt_file, cpt_dir, train_dir, test_dir = self.init_workspace()
@@ -166,24 +167,23 @@ class AILitUniversity:
 
         return run_name
 
-    def evaluate(self, model_checkpoint, evaluation_name):
+    def evaluate(self, model_checkpoint, evaluation_name, **kwargs):
         """
         Evaluate the model in this university using the parameters stored in the provided checkpoint.
         :param model_checkpoint: The directory where the checkpoint to evaluate is stored.
         :param evaluation_name: The name of the evaluation to perform. This allows multiple evaluations against the
         same trained model.
+        :param kwargs Set of key-word arguments to be leveraged by individual implementors
         :return: The set of total targets and the associated predictions. Can be used for further analysis.
         """
         FLAGS.epochs = 1
         targets = []
         predictions = []
-        ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)
-        ckpt_restore_dir = os.path.join(ckpt_dir, "checkpoints")
+
+        # get eval workspace and create the evaluation directory for the evaluation to perform
+        ckpt_dir, ckpt_restore_dir, eval_dir = self.get_evavluation_workspace(model_checkpoint, evaluation_name)
         assert os.path.exists(ckpt_dir)
         assert os.path.exists(ckpt_restore_dir)
-
-        # create the evaluation directory for the evaluation to perform
-        eval_dir = os.path.join(ckpt_dir, evaluation_name)
         assert not os.path.exists(eval_dir)
         tf.gfile.MakeDirs(eval_dir)
 
@@ -214,6 +214,7 @@ class AILitUniversity:
                 # run until the inputs are exhausted
                 print("Begin evaluation")
                 try:
+                    v_step = 0
                     while True:
                         eval_batch = list(session.run(eval_tensors))
                         summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = self.perform_evaluation_run(
@@ -222,13 +223,15 @@ class AILitUniversity:
                         predictions.extend(batch_predictions)
 
                         clear_output(True)
-                        print("Validation Step")
+                        print("Validation Step", v_step)
                         print('Targets:')
                         print(batch_targets)
                         print('Predictions:')
                         print(batch_predictions)
                         print("Loss {:g}, Acc {:g}".format(batch_loss, batch_accuracy))
                         print()
+
+                        v_step = v_step + 1
 
                 except tf.errors.OutOfRangeError:
                     print("Testing examples exhausted")
@@ -277,6 +280,18 @@ class AILitUniversity:
             json.dump(FLAGS.__dict__['__flags'], f, indent=4)
 
         return time_str, cpt_file, cpt_dir, train_dir, test_dir
+
+    def get_evavluation_workspace(self, model_checkpoint, evaluation_name):
+        """
+        Retrieve the file paths for the evaluation workspace given the model and eval name.
+        :param model_checkpoint: The model checkpoint to load for the evaluation.
+        :param evaluation_name: The name of the evaluation to perform. This gets it's own directory.
+        :return:
+        """
+        ckpt_dir = os.path.join(self.workspace, self.model_dir, model_checkpoint)
+        ckpt_restore_dir = os.path.join(ckpt_dir, "checkpoints")
+        eval_dir = os.path.join(ckpt_dir, evaluation_name)
+        return ckpt_dir, ckpt_restore_dir, eval_dir
 
     def get_latest_run_dir(self):
         """
@@ -332,16 +347,17 @@ class AILitUniversity:
 
         return targets, predictions
 
-    def get_or_perform_evaluation(self, model_checkpoint, evaluation_name):
+    def get_or_perform_evaluation(self, model_checkpoint, evaluation_name, **kwargs):
         """
         Helper method to retrieve an evaluation (or perform one if necessary) on the provided checkpoint directory.
         :param model_checkpoint: The checkpoint directory to retrieve an evaluation for.
         :param evaluation_name: The name of the evaluation to load or perform. This allows multiple evaluations
         against the same trained model.
+        :param kwargs Set of key-word arguments to be leveraged by individual implementors
         :return: targets, predictions
         """
         targets, predictions = self.get_evaluation(model_checkpoint, evaluation_name)
         if targets is None or predictions is None:
             print("Could not find a saved run in the checkpoint directory. Will perform evaluation now.")
-            targets, predictions = self.evaluate(model_checkpoint, evaluation_name)
+            targets, predictions = self.evaluate(model_checkpoint, evaluation_name, **kwargs)
         return targets, predictions
