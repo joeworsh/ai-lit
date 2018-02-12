@@ -25,6 +25,19 @@ CHAPTER_INDEX_JSON = 'chapter_index.json'
 title_map = []
 
 
+class ChapterRecord:
+    """
+    Representation of a chapter that belongs to a greater book.
+    """
+
+    def __init__(self, target, pred, book_id, chap_idx, body=None):
+        self.target = target
+        self.pred = pred
+        self.book_id = book_id
+        self.chap_idx = chap_idx
+        self.body = body
+
+
 def get_training_dataset(workspace, class_count, vocab, chapter_length):
     """
     Get the GB chapter training dataset.
@@ -131,18 +144,17 @@ def extract_dataset(workspace, class_count, vocab, chapter_length, train=True):
                     for label, body, book_id, chap_idx in zip(batch_y, batch_x, batch_book_ids, batch_chap_idx):
                         if book_id[0] not in records:
                             records[book_id[0]] = {}
-                        records[book_id[0]][chap_idx[0]] = body
+                        records[book_id[0]][chap_idx[0]] = ChapterRecord(label, label, book_id[0], chap_idx[0], body)
             except tf.errors.OutOfRangeError:
                 print("Training examples exhausted")
 
             coord.request_stop()
             coord.join(threads)
-    sorted_records = {book_id: [records[book_id][chap_idx] for chap_idx in sorted(records[book_id])] for book_id in
-                      records}
+
     chapter_index_file = os.path.join(workspace, CHAPTER_INDEX_JSON)
     with open(chapter_index_file, 'r') as f:
         title_map_file = json.load(f)
-    return sorted_records, title_map_file
+    return records, title_map_file
 
 
 def compile_dataset(subjects, dataset_dir, workspace, max_vocab_size=5000, test_split=0.3):

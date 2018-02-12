@@ -22,18 +22,6 @@ tf.flags.DEFINE_integer("vocab_count", 5000,
 FLAGS = tf.flags.FLAGS
 
 
-class ChapterRecord:
-    """
-    Collection of chapter records for aggregation evaluations.
-    """
-
-    def __init__(self, target, pred, book_id, chap_idx):
-        self.target = target
-        self.pred = pred
-        self.book_id = book_id
-        self.chap_idx = chap_idx
-
-
 class GbChapterUniversity(ai_lit_university.AILitUniversity):
     """
     This is an AI Lit university for training models on the Gutenberg individual chapters text dataset.
@@ -87,7 +75,7 @@ class GbChapterUniversity(ai_lit_university.AILitUniversity):
         :return: nothing
         """
         for target, pred, book_id, chap_idx in zip(batch_targets, batch_predictions, batch_book_ids, batch_chap_idx):
-            record = ChapterRecord(target, pred, book_id[0], chap_idx[0])
+            record = gb_chapters_dataset.ChapterRecord(target, pred, book_id[0], chap_idx[0])
             if record.book_id not in self.evaluation_aggrs:
                 self.evaluation_aggrs[record.book_id] = []
             self.evaluation_aggrs[record.book_id].append(record)
