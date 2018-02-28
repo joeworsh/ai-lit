@@ -51,8 +51,6 @@ loadSubjects <- function(dataset_wkspc){
 # a function for loading and processing a JSON ai_lit gutenberg dataset.
 loadData <- function(file, sbjs){
   data <- fromJSON(readLines(file), flatten = TRUE)
-  #data %>% mutate(atomic_subject = getAtomicSubject(subjects, sbjs))
-  #data$atomic_subject <- sbjs[match(data$subjects, sbjs)]
   data$atomic_subject <- getAtomicSubjects(data$subjects, sbjs)
   corpus <- VCorpus(VectorSource(data$body))
   corpus <- tm_map(corpus, removeNumbers)
