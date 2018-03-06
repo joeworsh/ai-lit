@@ -66,7 +66,7 @@ def get_dataset(workspace, tf_file, class_count, vocab, start_index=None, end_in
     :return: The label and value record tensors from the dataset.
     """
 
-    vocab_cap = len(vocab)
+    vocab_cap = len(vocab) - 1
 
     def _parse_function(example_proto):
         context_features = {

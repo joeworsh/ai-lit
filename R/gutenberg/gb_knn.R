@@ -50,6 +50,69 @@ if (file.exists(eval_dir) && file.exists(eval_vars)){
   save(knn.pred, conf.mat, accuracy, caret.conf.mat, p, r, f1, file=eval_vars)
 }
 
+print("k=1:")
+accuracy
+caret.conf.mat
+p
+r
+f1
+
+# evaluationt 1: default kNN
+experiment_name <- "k-5_knn"
+eval_dir <- file.path(model_dir, experiment_name)
+eval_vars <- file.path(eval_dir, paste(experiment_name, ".RData", sep=''))
+
+# run or load the kNN standard evaluation
+if (file.exists(eval_dir) && file.exists(eval_vars)){
+  load(eval_vars, .GlobalEnv)
+}else{
+  # Create model: training set, test set, training set classifier
+  knn.pred <- knn(merged.corpus.df[train, -ncol(merged.corpus.df)], merged.corpus.df[test, -ncol(merged.corpus.df)], merged.corpus.df[train, ncol(merged.corpus.df)], k=5)
+  
+  # Confusion matrix
+  conf.mat <- table("Predictions" = knn.pred, Actual = merged.corpus.df[test, ncol(merged.corpus.df)])
+  accuracy <- sum(diag(conf.mat))/length(test) * 100
+  caret.conf.mat <- confusionMatrix(conf.mat, mode = "prec_recall")
+  p <- sum(caret.conf.mat$byClass[,5]) / 6
+  r <- sum(caret.conf.mat$byClass[,6]) / 6
+  f1 <- (2 * p * r) / (p + r)
+  
+  dir.create(eval_dir)
+  save(knn.pred, conf.mat, accuracy, caret.conf.mat, p, r, f1, file=eval_vars)
+}
+
+print("k=5:")
+accuracy
+caret.conf.mat
+p
+r
+f1
+
+# evaluationt 1: default kNN
+experiment_name <- "k-10_knn"
+eval_dir <- file.path(model_dir, experiment_name)
+eval_vars <- file.path(eval_dir, paste(experiment_name, ".RData", sep=''))
+
+# run or load the kNN standard evaluation
+if (file.exists(eval_dir) && file.exists(eval_vars)){
+  load(eval_vars, .GlobalEnv)
+}else{
+  # Create model: training set, test set, training set classifier
+  knn.pred <- knn(merged.corpus.df[train, -ncol(merged.corpus.df)], merged.corpus.df[test, -ncol(merged.corpus.df)], merged.corpus.df[train, ncol(merged.corpus.df)], k=10)
+  
+  # Confusion matrix
+  conf.mat <- table("Predictions" = knn.pred, Actual = merged.corpus.df[test, ncol(merged.corpus.df)])
+  accuracy <- sum(diag(conf.mat))/length(test) * 100
+  caret.conf.mat <- confusionMatrix(conf.mat, mode = "prec_recall")
+  p <- sum(caret.conf.mat$byClass[,5]) / 6
+  r <- sum(caret.conf.mat$byClass[,6]) / 6
+  f1 <- (2 * p * r) / (p + r)
+  
+  dir.create(eval_dir)
+  save(knn.pred, conf.mat, accuracy, caret.conf.mat, p, r, f1, file=eval_vars)
+}
+
+print("k=10:")
 accuracy
 caret.conf.mat
 p

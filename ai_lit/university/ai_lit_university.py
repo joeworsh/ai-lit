@@ -90,7 +90,7 @@ class AILitUniversity:
             try:
                 validation_tensors = list(self.get_validation_data())
             except NotImplementedError:
-                validation_tensors = None, None
+                validation_tensors = None
 
             model = self.get_model(tf_graph)
 

@@ -50,7 +50,7 @@ class GbFullUniversity(ai_lit_university.AILitUniversity):
         self.dataset_wkspc = dataset_wkspc
         self.subjects = gb_input.get_subjects(self.dataset_wkspc)
         self.vocab = input_util.get_sorted_vocab(gb_input.get_vocabulary(self.dataset_wkspc))
-        self.vocab = self.vocab[:FLAGS.vocab_count + 1]
+        self.vocab = self.vocab[:FLAGS.vocab_count]
         self.text_window = text_window
         self.starting_idx = starting_idx
 
