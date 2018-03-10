@@ -57,7 +57,7 @@ class GbChaptersHANUniversity(gb_h2_chapters_university.GbH2ChapterUniversity):
             model.inputs: training_batch[1],
             model.word_lengths: np.full([FLAGS.batch_size, self.max_chapter_len], self.max_para_len),
             model.sentence_lengths: np.full([FLAGS.batch_size], self.max_chapter_len),
-            model.labels: training_batch[0],
+            model.input_y: training_batch[0],
             model.dropout_keep_prob: FLAGS.dropout}
         _, summary, step, batch_loss, batch_accuracy, batch_targets, batch_predictions = session.run(
             [model.train_op, model.summary_op, model.global_step, model.loss, model.accuracy, model.targets,
@@ -79,7 +79,7 @@ class GbChaptersHANUniversity(gb_h2_chapters_university.GbH2ChapterUniversity):
             model.inputs: eval_batch[1],
             model.word_lengths: np.full([FLAGS.batch_size, self.max_chapter_len], self.max_para_len),
             model.sentence_lengths: np.full([FLAGS.batch_size], self.max_chapter_len),
-            model.labels: eval_batch[0],
+            model.input_y: eval_batch[0],
             model.dropout_keep_prob: 1}
         summary, batch_loss, batch_accuracy, batch_targets, batch_predictions = session.run(
             [model.summary_op, model.loss, model.accuracy, model.targets, model.prediction],
