@@ -105,3 +105,9 @@ def parse_chapters(body):
         return re.split(rom_num_section_split, body)
     else:
         return [body]
+
+def parse_paragraphs(body):
+    """
+    Parse the provided text by paragraphs. In this case, new lines.
+    """
+    return re.split(para_split, body)
