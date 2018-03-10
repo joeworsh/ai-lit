@@ -3,12 +3,11 @@ An AI Lit university for training and evaluating the Gutenberg individual chapte
 with the CNN-Kim model.
 """
 
-from ai_lit.input import input_util
-from ai_lit.models import han
-from ai_lit.university.gutenberg import gb_h2_chapters_university
-
 import numpy as np
 import tensorflow as tf
+
+from ai_lit.models import han
+from ai_lit.university.gutenberg import gb_h2_chapters_university
 
 # training parameters
 tf.flags.DEFINE_float("dropout", 0.5,

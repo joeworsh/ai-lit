@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
-
 from tensorflow.contrib.rnn import GRUCell
 
 from ai_lit.models.model_utils import task_specific_attention, bidirectional_rnn
@@ -29,8 +28,7 @@ class HAN:
         self.term_count = term_count
         self.subject_count = subject_count
 
-
-        with tf.variable_scope('tcm') as scope:
+        with tf.variable_scope('tcm'), tf.device('/gpu:0') as scope:
             self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
             self.sample_weights = tf.placeholder(shape=(None,), dtype=tf.float32, name='sample_weights')
@@ -57,9 +55,10 @@ class HAN:
             self._init_embedding(scope)
 
             # embeddings cannot be placed on GPU
-            self._init_body(scope)
+            with tf.device('/cpu:0'):
+                self._init_body(scope)
 
-        with tf.variable_scope('train'):
+        with tf.variable_scope('train'), tf.device('/gpu:0'):
             self.cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.labels, logits=self.logits)
 
             self.loss = tf.reduce_mean(tf.multiply(self.cross_entropy, self.sample_weights))

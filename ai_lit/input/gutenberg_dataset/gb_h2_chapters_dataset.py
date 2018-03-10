@@ -102,15 +102,63 @@ def get_dataset(workspace, tf_file, class_count, vocab, max_chapter_len=50, max_
         return y, x, book_id, chapter_idx
 
     # filter to ensure only complete batches are included in this dataset
-    filter_batch = lambda y, x, book_id, chapter_idx: tf.equal(tf.shape(x)[0], FLAGS.batch_size)
+    filter_batch = lambda y, x, book_id, chapter_idx: tf.equal(tf.shape(y)[0], FLAGS.batch_size)
 
     tf_filepath = os.path.join(workspace, tf_file)
     dataset = tf.contrib.data.TFRecordDataset(tf_filepath)
     dataset = dataset.map(_parse_function)
     dataset = dataset.shuffle(buffer_size=FLAGS.batch_queue_capacity)
+    dataset = dataset.batch(FLAGS.batch_size)
     dataset = dataset.filter(filter_batch)
     dataset = dataset.repeat(FLAGS.epochs)
     return dataset
+
+def extract_dataset(workspace, class_count, vocab, train=True):
+    """
+    Organize and extract the h2 chapter based dataset into a list of lists of integers (word ids).
+    :param train:
+    :param vocab:
+    :param class_count:
+    :param workspace:
+    :return: list of list of ints and the title map from file
+    """
+    FLAGS.epochs = 1
+    FLAGS.batch_size = 20
+    records = {}
+    with tf.Graph().as_default():
+        if train:
+            dataset = get_training_dataset(workspace, class_count, vocab)
+        else:
+            dataset = get_testing_dataset(workspace, class_count, vocab)
+        data_iter = dataset.make_one_shot_iterator()
+        labels, bodies, book_ids, chapter_idx = data_iter.get_next()
+        tf.no_op()
+        init_op = tf.group(tf.global_variables_initializer(),
+                           tf.local_variables_initializer(),
+                           tf.tables_initializer())
+        with tf.Session() as session:
+            init_op.run()
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=session, coord=coord)
+            try:
+                while True:
+                    # get next batch from the list
+                    batch_y, batch_x, batch_book_ids, batch_chap_idx = session.run(
+                        [labels, bodies, book_ids, chapter_idx])
+                    for label, body, book_id, chap_idx in zip(batch_y, batch_x, batch_book_ids, batch_chap_idx):
+                        if book_id[0] not in records:
+                            records[book_id[0]] = {}
+                        records[book_id[0]][chap_idx[0]] = ChapterRecord(label, label, book_id[0], chap_idx[0], body)
+            except tf.errors.OutOfRangeError:
+                print("Training examples exhausted")
+
+            coord.request_stop()
+            coord.join(threads)
+
+    chapter_index_file = os.path.join(workspace, CHAPTER_INDEX_JSON)
+    with open(chapter_index_file, 'r') as f:
+        title_map_file = json.load(f)
+    return records, title_map_file
 
 
 def compile_dataset(subjects, dataset_dir, workspace,
