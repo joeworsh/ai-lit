@@ -57,7 +57,7 @@ class HAN:
             with tf.device('/cpu:0'):
                 self._init_body(scope)
 
-        with tf.variable_scope('train'), tf.device('/gpu:0'):
+        with tf.variable_scope('train'):
             self.cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.targets, logits=self.logits)
 
             self.loss = tf.reduce_mean(tf.multiply(self.cross_entropy, self.sample_weights))
