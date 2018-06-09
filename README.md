@@ -76,4 +76,10 @@ After the dataset has been downloaded, the data must be built into a common form
 
 ## Running a Model<a name="model"/>
 
-TODO
+### Python
+
+The python experiments are all run within Jupyter Notebooks. The experiments are found [here](./ai-lit/analysis/gutenberg). The models are run using TensorFlow and are configured using TF flags.
+
+### R
+
+The R scripts can be run directly using R. [RStudio](https://www.rstudio.com/) can make it easier to run and analyze the R machine learning models.
