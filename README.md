@@ -61,15 +61,12 @@ The Project Gutenberg dataset is hosted by the [Project Gutenberg](https://www.g
 3. extract the XML/RDF library to the same directory as the downloaded dataset
 
 The downloading process should yeild a folder structure like the following:
-
-|->GutenbergDataset
-
+```
+|GutenbergDataset
 |-->cache
-
 |-->www.gutenberg.org
-
 |--><mirror name of download mirror>.
-
+```
 The name of the mirror does not matter, the data will be extracted from any mirror folder name.
 
 After the dataset has been downloaded, the data must be built into a common format and then compiled into [TFRecord](https://www.tensorflow.org/programmers_guide/datasets#consuming_tfrecord_data) files which are read into the ai-lit TensorFlow models. Run the following python script to build the common dataset format and the TFRecords for the different data representations.
