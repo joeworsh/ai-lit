@@ -215,16 +215,17 @@ def build_inputs(subjects, body_file_map, dataset_dir, workspace, test_split):
 
     # step through all Gutenberg index files searching for files
     # with the desired subjects and building the known vocabulary
-    print("Indexing all Gutenberg Index files.")
     index_files = glob(os.path.join(dataset_dir, 'cache', '**/*.rdf'))
     total_count = len(index_files)
     current_idx = 0
+    print("Indexing", total_count, "Gutenberg Index files.")
     for idxfile in index_files:
-        sys.stdout.write("GB Processing... %s%%\r" % ((current_idx / total_count) * 100))
         sys.stdout.flush()
+        sys.stdout.write("GB Processing... %s%%\r" % ((current_idx / total_count) * 100))
         with open(idxfile, 'r', encoding='ISO-8859-1') as f:
             idxbody = f.read().encode('utf-8')
             gidx = parse_index_file(idxfile, idxbody)
+            sys.stdout.write("\n" + gidx.title + " " + gidx.index + " " + str(gidx.subjects))
             if any(s in gidx.subjects for s in subjects):
                 if gidx.index in body_file_map:
                     gidx.bodyfile = body_file_map[gidx.index]
