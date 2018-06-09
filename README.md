@@ -78,7 +78,7 @@ After the dataset has been downloaded, the data must be built into a common form
 
 ### Python
 
-The python experiments are all run within Jupyter Notebooks. The experiments are found [here](./ai-lit/analysis/gutenberg). The models are run using TensorFlow and are configured using TF flags.
+The python experiments are all run within Jupyter Notebooks. The experiments are found [here](../blob/master/ai-lit/analysis/gutenberg). The models are run using TensorFlow and are configured using TF flags.
 
 ### R
 
