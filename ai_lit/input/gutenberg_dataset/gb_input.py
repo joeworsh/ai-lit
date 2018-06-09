@@ -292,11 +292,10 @@ def map_body_files(data_dir):
     that they represent.
     """
     print("Mapping all body files by index.")
-    body_files = tf.gfile.Glob(os.path.join(data_dir, '**/*.zip'))
+    body_files = glob.glob(os.path.join(data_dir, '**/*.zip'), recursive=True)
     print("Searching through", len(body_files), "zip files.")
     body_file_map = {}
     for bodyfile in body_files:
-        print(bodyfile)
         idx = os.path.splitext(bodyfile)[0]
         idx = os.path.basename(idx)
         body_file_map[idx] = bodyfile
