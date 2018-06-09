@@ -220,14 +220,15 @@ def build_inputs(subjects, body_file_map, dataset_dir, workspace, test_split):
     current_idx = 0
     print("Indexing", total_count, "Gutenberg Index files.")
     for idxfile in index_files:
-        sys.stdout.flush()
         sys.stdout.write("GB Processing... %s%%\r" % ((current_idx / total_count) * 100))
+        sys.stdout.flush()
         with open(idxfile, 'r', encoding='ISO-8859-1') as f:
             idxbody = f.read().encode('utf-8')
             gidx = parse_index_file(idxfile, idxbody)
-            sys.stdout.write("\n" + gidx.title + " " + gidx.index + " " + str(gidx.subjects))
             if any(s in gidx.subjects for s in subjects):
+                print("Found subject in" + gidx.subjects)
                 if gidx.index in body_file_map:
+                    print("Found in body file map:", gidx.index)
                     gidx.bodyfile = body_file_map[gidx.index]
                     gidx.body = extract_body(gidx.bodyfile)
 
