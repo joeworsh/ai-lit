@@ -226,7 +226,7 @@ def build_inputs(subjects, body_file_map, dataset_dir, workspace, test_split):
             idxbody = f.read().encode('utf-8')
             gidx = parse_index_file(idxfile, idxbody)
             if any(s in gidx.subjects for s in subjects):
-                print("Found subject in" + gidx.subjects)
+                print("Found subject in" + str(gidx.subjects))
                 if gidx.index in body_file_map:
                     print("Found in body file map:", gidx.index)
                     gidx.bodyfile = body_file_map[gidx.index]
