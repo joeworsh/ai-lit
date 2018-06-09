@@ -62,7 +62,7 @@ The Project Gutenberg dataset is hosted by the [Project Gutenberg](https://www.g
 
 The downloading process should yeild a folder structure like the following:
 ```
-|GutenbergDataset
+GutenbergDataset
 |-->cache
 |-->www.gutenberg.org
 |--><mirror name of download mirror>.
