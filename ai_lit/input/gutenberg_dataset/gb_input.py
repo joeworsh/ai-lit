@@ -292,7 +292,7 @@ def map_body_files(data_dir):
     that they represent.
     """
     print("Mapping all body files by index.")
-    body_files = tf.gfile.Glob(os.path.join(data_dir, 'www.gutenberg.lib.md.us', '**/*.zip'))
+    body_files = tf.gfile.Glob(os.path.join(data_dir, '**/*.zip'))
     body_file_map = {}
     for bodyfile in body_files:
         idx = os.path.splitext(bodyfile)[0]
