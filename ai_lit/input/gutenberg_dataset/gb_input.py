@@ -230,6 +230,11 @@ def build_inputs(subjects, body_file_map, dataset_dir, workspace, test_split):
                     gidx.bodyfile = body_file_map[gidx.index]
                     gidx.body = extract_body(gidx.bodyfile)
 
+                    tokens = nltk.word_tokenize(gidx.body)
+                    gidx.body_length = len(tokens)
+                    title_tokens = nltk.word_tokenize(gidx.title)
+                    gidx.title_length = len(title_tokens)
+
                     # determine if this record will belong to the training set or the test set
                     if random.random() < test_split:
                         test_inputs.append(gidx)
@@ -237,12 +242,7 @@ def build_inputs(subjects, body_file_map, dataset_dir, workspace, test_split):
                         train_inputs.append(gidx)
 
                         # note: the vocabulary is only created based off of the training inputs, not the test inputs
-                        tokens = nltk.word_tokenize(gidx.body)
                         vocab.update(tokens)
-                        gidx.body_length = len(tokens)
-
-                        title_tokens = nltk.word_tokenize(gidx.title)
-                        gidx.title_length = len(title_tokens)
         current_idx = current_idx + 1
 
     # write the vocab to file
