@@ -63,8 +63,8 @@ def decode_gb_idx(dct):
         gb_idx = GutenbergIndex(dct['index'], dct['indexfile'], dct['title'], dct['author'], dct['subjects'])
         gb_idx.body = dct['body']
         gb_idx.bodyfile = dct['bodyfile']
-        #gb_idx.body_length = dct['body_length']
-        #gb_idx.title_length = dct['title_length']
+        gb_idx.body_length = dct['body_length']
+        gb_idx.title_length = dct['title_length']
         return gb_idx
     return dct
 
