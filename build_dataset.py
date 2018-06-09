@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 
+import nltk
 import sys
 
 from ai_lit.input.gutenberg_dataset import gb_chapters_dataset, gb_titles_dataset, gb_full_dataset, gb_h2_chapters_dataset
+
+# need the punkt tokenizer
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 subjects = [
     "Science fiction",
