@@ -292,7 +292,7 @@ def map_body_files(data_dir):
     that they represent.
     """
     print("Mapping all body files by index.")
-    body_files = glob.glob(os.path.join(data_dir, '**/*.zip'), recursive=True)
+    body_files = glob(os.path.join(data_dir, '**/*.zip'), recursive=True)
     print("Searching through", len(body_files), "zip files.")
     body_file_map = {}
     for bodyfile in body_files:
