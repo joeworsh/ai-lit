@@ -300,6 +300,7 @@ def map_body_files(data_dir):
     for bodyfile in body_files:
         idx = os.path.splitext(bodyfile)[0]
         idx = os.path.basename(idx)
+        print(idx)
         body_file_map[idx] = bodyfile
     print("Found", len(body_file_map), "GB files.")
     return body_file_map
