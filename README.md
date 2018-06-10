@@ -64,7 +64,7 @@ The Project Gutenberg dataset is hosted by the [Project Gutenberg](https://www.g
 
 3. extract the XML/RDF library to the same directory as the downloaded dataset
 
-The downloading process should yeild a folder structure like the following:
+The downloading process should yield a folder structure like the following:
 ```
 GutenbergDataset
 |-->cache
