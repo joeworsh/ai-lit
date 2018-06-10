@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import nltk
+import os
 import sys
 
 from ai_lit.input.gutenberg_dataset import gb_chapters_dataset, gb_titles_dataset, gb_full_dataset, gb_h2_chapters_dataset
@@ -27,6 +28,11 @@ if len(sys.argv) != 2:
 
 dataset_dir = sys.argv[1]
 workspace = 'workspace'
+
+if not os.path.exists(workspace):
+    os.makedirs(workspace)
+
+workspace = os.path.join(workspace, 'gb_input')
 
 gb_chapters_dataset.compile_dataset(subjects=subjects, dataset_dir=dataset_dir, workspace=workspace)
 gb_titles_dataset.compile_dataset(subjects=subjects, dataset_dir=dataset_dir, workspace=workspace)
