@@ -119,16 +119,21 @@ genre_names[[6]] <- "Western"
 
 # combine all the genres into individual BOWs to find a cross-genre weighting scheme
 combined_genres <- vector("list", 6)
+scaled_combined_genres <- vector("list", 6)
 for (sbj_factor in 1:length(split_df)) {
   sbj_split_df = split_df[[sbj_factor]][, -ncol(merged.corpus.df)]
   #sbj_merged_df <- data.frame(colSums(sbj_split_df))
   #sbj_merged_df <- colSums(sbj_split_df)
   sbj_merged_df <- data.frame(t(colSums(sbj_split_df)))
   colnames(sbj_merged_df) <- colnames(sbj_split_df)
+  sbj_merged_scaled_df <- apply(sbj_merged_df, 1, function(x)(x-min(x))/(max(x)-min(x)))
   combined_genres[[sbj_factor]] <- sbj_merged_df
+  scaled_combined_genres[[sbj_factor]] <- sbj_merged_scaled_df
 }
 combined_genres_df <- data.frame(matrix(unlist(combined_genres), nrow=6, byrow=T))
+scaled_combined_genres_df <- data.frame(matrix(unlist(scaled_combined_genres), nrow=6, byrow=T))
 colnames(combined_genres_df) <- colnames(sbj_split_df)
+colnames(scaled_combined_genres_df) <- colnames(sbj_split_df)
 combined_genres_tfidf <- as.DocumentTermMatrix(combined_genres_df, weighting = weightTf)
 
 library(stats)
@@ -143,6 +148,50 @@ ggbiplot(pca, obs.scale = 1, var.scale = 1, var.axes = FALSE,
          scale_color_discrete(name = '') +
          theme(legend.direction = 'horizontal', legend.position = 'top')
 pca$rotation[tail(order(abs(pca$rotation[,1])), 50), 1]
+pca$rotation[tail(order(abs(pca$rotation[,2])), 50), 2]
+pca$rotation[head(order(abs(pca$rotation[,1])), 50), 1]
+pca$rotation[head(order(abs(pca$rotation[,2])), 50), 2]
+
+for (sbj_idx in 1:6) {
+  genre_split_df = scaled_combined_genres_df[sbj_idx, -ncol(scaled_combined_genres_df)]
+  if (sbj_idx < 6) {
+    for (sbj_idx_2 in (sbj_idx+1):6) {
+      genre_split_df_2 <- scaled_combined_genres_df[sbj_idx_2, -ncol(scaled_combined_genres_df)]
+      
+      # 1 to 2
+      print(paste(genre_names[sbj_idx], genre_names[sbj_idx_2], sep=" - "))
+      intersect_1_2 <- genre_split_df - genre_split_df_2
+      intersect_1_2[intersect_1_2 < 0] <- 0
+      int_1_2_norm <- norm(as.matrix(intersect_1_2))
+      print(int_1_2_norm)
+      
+      jpeg(paste(paste(genre_names[sbj_idx], genre_names[sbj_idx_2], sep="_"), "jpg", sep="."))
+      barplot(as.matrix(intersect_1_2[tail(order(intersect_1_2), 50)]),
+                        main=paste(genre_names[sbj_idx], genre_names[sbj_idx_2], sep=" - "),
+                        xlab="terms",
+                        cex.names=0.8,
+                        las=2,
+                        horiz = TRUE)
+      dev.off()
+      
+      # 2 to 1
+      print(paste(genre_names[sbj_idx_2], genre_names[sbj_idx], sep=" - "))
+      intersect_2_1 <- genre_split_df_2 - genre_split_df
+      intersect_2_1[intersect_2_1 < 0] <- 0
+      int_2_1_norm <- norm(as.matrix(intersect_2_1))
+      print(int_2_1_norm)
+      
+      jpeg(paste(paste(genre_names[sbj_idx_2], genre_names[sbj_idx], sep="_"), "jpg", sep="."))
+      barplot(as.matrix(intersect_2_1[tail(order(intersect_2_1), 50)]),
+                        main=paste(genre_names[sbj_idx_2], genre_names[sbj_idx], sep=" - "),
+                        xlab="terms",
+                        cex.names=0.8,
+                        las=2,
+                        horiz = TRUE)
+      dev.off()
+    }
+  }
+}
 
 weights <- colSums(as.matrix(combined_genres_tfidf))
 weights_ord <- order(weights)
